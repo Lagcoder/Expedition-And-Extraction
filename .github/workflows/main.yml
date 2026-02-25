@@ -27,7 +27,7 @@ jobs:
     # Step 3: Delete the target folder (if needed for any cleanup)
     - name: Delete specific folder (optional cleanup)
       env:
-        TARGET_FOLDER: "folder_to_replace" # Replace this if there’s a specific folder to clean up
+        TARGET_FOLDER: "overrides" # Replace this if there’s a specific folder to clean up
       run: |
         if [ -d "$TARGET_FOLDER" ]; then
           echo "Deleting folder: $TARGET_FOLDER"
