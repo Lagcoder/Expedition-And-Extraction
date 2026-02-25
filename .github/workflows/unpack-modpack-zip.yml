@@ -29,8 +29,7 @@ jobs:
         run: |
           set -e
 
-          # This does the exact same thing in one line
-          ZIP_FILE=$(find . -maxdepth 1 -name "expedition*extraction*.zip" -print -quit)
+          ZIP_FILE=$(find . -maxdepth 1 -name "Expedition*Extraction*.zip" -print -quit)
 
           if [ -z "$ZIP_FILE" ]; then
             echo "No expedition_and_extraction*.zip found. Skipping."
