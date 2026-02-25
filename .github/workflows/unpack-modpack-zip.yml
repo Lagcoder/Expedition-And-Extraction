@@ -1,6 +1,7 @@
 name: Unpack Modpack ZIP
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
