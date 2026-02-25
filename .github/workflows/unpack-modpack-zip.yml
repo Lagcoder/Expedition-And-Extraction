@@ -28,17 +28,27 @@ jobs:
         id: find-zip
         run: |
           set -e
+          # 1. Find the file (the 'ghost' with spaces)
+          RAW_FILE=$(find . -maxdepth 1 -iname "*expedition*extraction*.zip" -print -quit)
 
-          ZIP_FILE=$(find . -maxdepth 1 -name "Expedition*Extraction*.zip" -print -quit)
-
-          if [ -z "$ZIP_FILE" ]; then
-            echo "No expedition_and_extraction*.zip found. Skipping."
+          if [ -z "$RAW_FILE" ]; then
             echo "found=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Found ZIP: $ZIP_FILE"
+            # 2. RENAME THE FILE (Physical)
+            CLEAN_NAME="expedition_and_extraction.zip"
+            mv "$RAW_FILE" "$CLEAN_NAME"
+
+            # 3. RENAME THE VARIABLE (Digital)
+            # We overwrite ZIP_FILE with the clean name for the next steps
+            ZIP_FILE="$CLEAN_NAME"
+
             echo "found=true" >> "$GITHUB_OUTPUT"
-            # Write to a file instead of GITHUB_OUTPUT to avoid shell escaping issues
+            echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
             echo "$ZIP_FILE" > "$RUNNER_TEMP/zip_path.txt"
+            
+            # This makes the branch name safe immediately
+            BASENAME="expedition_and_extraction"
+            echo "$BASENAME" > "$RUNNER_TEMP/zip_basename.txt"
           fi
 
       - name: Unpack and update repo
