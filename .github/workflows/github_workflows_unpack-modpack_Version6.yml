@@ -1,0 +1,170 @@
+name: Unpack Modpack ZIP
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  unpack:
+    # Guard: Skip bot commits AND any commit with [skip ci] (survives squash merges)
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find modpack ZIP
+        id: find-zip
+        run: |
+          set -e
+
+          # Use find with -print0 / read to safely handle spaces & special chars
+          ZIP_FILE=""
+          while IFS= read -r -d '' file; do
+            ZIP_FILE="$file"
+            break  # Take the first match only
+          done < <(find . -maxdepth 1 -name 'expedition_and_extraction*.zip' -print0)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "No expedition_and_extraction*.zip found. Skipping."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Found ZIP: $ZIP_FILE"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            # Write to a file instead of GITHUB_OUTPUT to avoid shell escaping issues
+            echo "$ZIP_FILE" > "$RUNNER_TEMP/zip_path.txt"
+          fi
+
+      - name: Unpack and update repo
+        if: steps.find-zip.outputs.found == 'true'
+        id: unpack
+        run: |
+          set -euo pipefail
+
+          ZIP_FILE="$(cat "$RUNNER_TEMP/zip_path.txt")"
+          echo "Processing: $ZIP_FILE"
+
+          # --- 1. Validate the ZIP is not corrupted before changing anything ---
+          if ! unzip -tq "$ZIP_FILE"; then
+            echo "::error::ZIP file is corrupted or unreadable. Aborting."
+            exit 1
+          fi
+
+          # --- 2. Extract to a temporary staging directory ---
+          STAGING=$(mktemp -d)
+          unzip -o "$ZIP_FILE" -d "$STAGING"
+
+          # --- 3. Clean junk files from the staging area ---
+          find "$STAGING" -name '__MACOSX' -type d -exec rm -rf {} + 2>/dev/null || true
+          find "$STAGING" -name '.DS_Store' -type f -delete 2>/dev/null || true
+
+          # --- 4. Determine if ZIP has a single top-level wrapper folder ---
+          # List only immediate children of the staging dir
+          TOP_ENTRIES=()
+          while IFS= read -r -d '' entry; do
+            TOP_ENTRIES+=("$(basename "$entry")")
+          done < <(find "$STAGING" -mindepth 1 -maxdepth 1 -print0)
+
+          SOURCE_DIR="$STAGING"
+          if [ "${#TOP_ENTRIES[@]}" -eq 1 ] && [ -d "$STAGING/${TOP_ENTRIES[0]}" ]; then
+            echo "ZIP has a single top-level wrapper folder: '${TOP_ENTRIES[0]}' — stripping it."
+            SOURCE_DIR="$STAGING/${TOP_ENTRIES[0]}"
+          else
+            echo "ZIP has ${#TOP_ENTRIES[@]} top-level entries — extracting directly."
+          fi
+
+          # --- 5. Only NOW delete the overrides folder (unzip succeeded) ---
+          if [ -d "overrides" ]; then
+            echo "Removing overrides/ folder..."
+            rm -rf overrides
+          else
+            echo "No overrides/ folder found, skipping removal."
+          fi
+
+          # --- 6. Copy extracted contents into repo root safely ---
+          # Use find to iterate instead of dangerous .* glob (which matches "..")
+          # Exclude .git and .github to protect repository metadata and workflows
+          find "$SOURCE_DIR" -mindepth 1 -maxdepth 1 -not -name '.git' -not -name '.github' -print0 | while IFS= read -r -d '' item; do
+            cp -rf "$item" .
+          done
+
+          # --- 7. Clean up staging directory ---
+          rm -rf "$STAGING"
+
+          # --- 8. Delete the ZIP file ---
+          echo "Removing ZIP file: $ZIP_FILE"
+          rm -f "$ZIP_FILE"
+
+          echo "Done unpacking."
+
+          # --- 9. Build a unique branch name ---
+          BASENAME=$(basename "$ZIP_FILE" .zip)
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BRANCH_NAME="unpack/${BASENAME}-${SHORT_SHA}"
+          echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+          echo "$BASENAME" > "$RUNNER_TEMP/zip_basename.txt"
+
+      - name: Create branch, commit, and open PR
+        if: steps.find-zip.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          BRANCH="${{ steps.unpack.outputs.branch_name }}"
+          BASENAME="$(cat "$RUNNER_TEMP/zip_basename.txt")"
+
+          # Configure git identity
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create and switch to the new branch
+          git checkout -b "$BRANCH"
+
+          # Stage all changes
+          git add -A
+
+          # Check if there are actual changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes detected after unpacking. Nothing to commit."
+            exit 0
+          fi
+
+          # Commit with [skip ci] to prevent re-triggering on merge
+          git commit -m "[skip ci] Unpack $BASENAME: remove overrides, extract ZIP contents"
+
+          # Force-push in case the branch name already exists from a prior run
+          git push origin "$BRANCH" --force
+
+          # Check if an open PR already exists for this branch
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists for branch '$BRANCH'. Skipping PR creation."
+          else
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Unpack modpack: $BASENAME" \
+              --body "## Automated Modpack Unpack
+
+          This PR was automatically created by the **Unpack Modpack** workflow.
+
+          ### What happened
+          1. ✅ Validated \`$BASENAME.zip\` integrity
+          2. 🗑️ Deleted the \`overrides/\` folder
+          3. 📦 Extracted ZIP contents into the repo root (overwriting matching files)
+          4. 🧹 Removed the ZIP file and any macOS junk files (\`__MACOSX\`, \`.DS_Store\`)
+
+          ### How to merge
+          Review the file changes below and merge when ready.
+          The merge commit includes \`[skip ci]\` so this workflow will **not** re-trigger."
+          fi
