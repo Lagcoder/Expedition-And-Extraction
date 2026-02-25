@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'expedition_and_extraction*.zip'
+      - 'Expedition And Extraction*.zip'
 
 permissions:
   contents: write
@@ -29,12 +29,8 @@ jobs:
         run: |
           set -e
 
-          # Use find with -print0 / read to safely handle spaces & special chars
-          ZIP_FILE=""
-          while IFS= read -r -d '' file; do
-            ZIP_FILE="$file"
-            break  # Take the first match only
-          done < <(find . -maxdepth 1 -name 'expedition_and_extraction*.zip' -print0)
+          # This does the exact same thing in one line
+          ZIP_FILE=$(find . -maxdepth 1 -name "expedition*extraction*.zip" -print -quit)
 
           if [ -z "$ZIP_FILE" ]; then
             echo "No expedition_and_extraction*.zip found. Skipping."
