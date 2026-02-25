@@ -1001,7 +1001,7 @@
       "quality": 3.1099608
     },
     {
-      "value": "cold_sweat:hoglin_hooves",
+      "value": "cold_sweat:hoglin_boots",
       "weight": 2145,
       "quality": 5.112942
     },
@@ -1143,12 +1143,12 @@
       "quality": 22.806026
     },
     {
-      "value": "cold_sweat:goat_fur_pants",
+      "value": "cold_sweat:goat_fur_leggings",
       "weight": 3764,
       "quality": 19.6975
     },
     {
-      "value": "cold_sweat:hoglin_trousers",
+      "value": "cold_sweat:hoglin_leggings",
       "weight": 2431,
       "quality": 22.967983
     },
@@ -1300,12 +1300,12 @@
       "quality": 1381.5734
     },
     {
-      "value": "cold_sweat:goat_fur_parka",
+      "value": "cold_sweat:goat_fur_chestplate",
       "weight": 12303,
       "quality": 1216.8303
     },
     {
-      "value": "cold_sweat:hoglin_tunic",
+      "value": "cold_sweat:hoglin_chestplate",
       "weight": 7479,
       "quality": 1306.4906
     },
@@ -1512,12 +1512,12 @@
       "quality": 9.38117
     },
     {
-      "value": "cold_sweat:goat_fur_cap",
+      "value": "cold_sweat:goat_fur_helmet",
       "weight": 36857,
       "quality": 4.10621
     },
     {
-      "value": "cold_sweat:hoglin_headpiece",
+      "value": "cold_sweat:hoglin_helmet",
       "weight": 20111,
       "quality": 7.819937
     },

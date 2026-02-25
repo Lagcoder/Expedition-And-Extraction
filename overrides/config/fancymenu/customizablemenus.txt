@@ -18,3 +18,21 @@ net.minecraft.client.gui.screens.ChatScreen {
 net.minecraft.client.gui.screens.PauseScreen {
 }
 
+net.minecraft.client.gui.screens.worldselection.SelectWorldScreen {
+}
+
+net.minecraft.client.gui.screens.worldselection.CreateWorldScreen {
+}
+
+net.minecraft.client.gui.screens.ConnectScreen {
+}
+
+net.minecraft.client.gui.screens.ReceivingLevelScreen {
+}
+
+net.irisshaders.iris.gui.screen.ShaderPackScreen {
+}
+
+fudge.notenoughcrashes.gui.CrashScreen {
+}
+

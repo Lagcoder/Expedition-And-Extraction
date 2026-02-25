@@ -13,6 +13,8 @@
 	WARNING_SPAWN_ENABLED = true
 	#Whether you gain naughtiness from certain actions
 	NAUGHTINESS_ENABLED = true
+	#Chilling Horror event enabled
+	CHILLING_HORROR_ENABLED = true
 
 [Weapons]
 	#Amount of phantom bombs that gets spawned when thrown

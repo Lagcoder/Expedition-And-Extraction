@@ -51,6 +51,8 @@
   "enableCrossPortalInteraction": true,
   "disabledWarnings": [
     "entityculling",
+    "iris",
+    "twilightforest",
     "many_mods",
     "collective"
   ]
