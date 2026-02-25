@@ -156,24 +156,18 @@ jobs:
           EXISTING_PR=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
 
           if [ -n "$EXISTING_PR" ]; then
-            echo "PR #$EXISTING_PR already exists for branch '$BRANCH'. Skipping PR creation."
+            echo "PR #$EXISTING_PR already exists."
           else
-            PR_BODY=$(cat <<EOF
-            ## Automated Modpack Unpack
+            # We use a simple variable with quotes. 
+            # This is safe and DOES NOT need to be "all the way to the left."
+            PR_BODY="## Automated Modpack Unpack
+            
+            This PR was automatically created by the workflow for: **$BASENAME**
 
-            This PR was automatically created by the **Unpack Modpack** workflow.
-
-            ### What happened
-            1. ✅ Validated \`${BASENAME}.zip\` integrity
-            2. 🗑️ Deleted the \`overrides/\` folder
-            3. 📦 Extracted ZIP contents into the repo root (overwriting matching files)
-            4. 🧹 Removed the ZIP file and any macOS junk files (\`__MACOSX\`, \`.DS_Store\`)
-
-            ### How to merge
-            Review the file changes below and merge when ready.
-            The merge commit includes \`[skip ci]\` so this workflow will **not** re-trigger.
-            EOF
-            )
+            1. ✅ Validated ZIP integrity
+            2. 🗑️ Deleted old overrides/
+            3. 📦 Extracted new contents
+            4. 🧹 Cleaned up ZIP and junk files"
 
             gh pr create \
               --base main \
